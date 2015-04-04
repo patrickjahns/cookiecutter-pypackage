@@ -7,6 +7,10 @@ try:
 except ImportError:
     from distutils.core import setup
 
+import sys
+from setuptools import setup, find_packages
+from setuptools.command.test import test as TestCommand
+
 
 with open('README.rst') as readme_file:
     readme = readme_file.read()
@@ -14,13 +18,31 @@ with open('README.rst') as readme_file:
 with open('HISTORY.rst') as history_file:
     history = history_file.read().replace('.. :changelog:', '')
 
-requirements = [
-    # TODO: put package requirements here
-]
 
-test_requirements = [
-    # TODO: put package test requirements here
-]
+def get_requirements(suffix=''):
+    with open('requirements%s.txt' % suffix) as f:
+        rv = f.read().splitlines()
+    return rv
+
+
+class PyTest(TestCommand):
+    def finalize_options(self):
+        TestCommand.finalize_options(self)
+        self.test_args = [
+            '-xrs',
+            '--cov', '{{ cookiecutter.repo_name }}',
+            '--cov-report', 'term-missing',
+            '--pep8',
+            '--flakes',
+            '--clearcache',
+            'tests'
+        ]
+        self.test_suite = True
+
+    def run_tests(self):
+        import pytest
+        errno = pytest.main(self.test_args)
+        sys.exit(errno)
 
 setup(
     name='{{ cookiecutter.repo_name }}',
@@ -36,12 +58,12 @@ setup(
     package_dir={'{{ cookiecutter.repo_name }}':
                  '{{ cookiecutter.repo_name }}'},
     include_package_data=True,
-    install_requires=requirements,
+    install_requires=get_requirements(),
     license="BSD",
     zip_safe=False,
     keywords='{{ cookiecutter.repo_name }}',
     classifiers=[
-        'Development Status :: 2 - Pre-Alpha',
+        'Development Status :: 4 - Beta',
         'Intended Audience :: Developers',
         'License :: OSI Approved :: BSD License',
         'Natural Language :: English',
@@ -52,6 +74,6 @@ setup(
         'Programming Language :: Python :: 3.3',
         'Programming Language :: Python :: 3.4',
     ],
-    test_suite='tests',
-    tests_require=test_requirements
+    cmdclass={'test': PyTest},
+    tests_require=get_requirements('-dev'),
 )
